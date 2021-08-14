@@ -11,7 +11,7 @@
   - Từ 4 cột 'Account Code', 'Order Category', 'Material Type', 'Procurement' tách dữ liệu theo công thức:
     - Nhập vào:
       - 'Account Code' = 101 và 'Order Category' = 'Purchase order'
-      - 'Account Code' = [602, 610, 623, 701, 720, 801, 809] và (
+      - 'Account Code' = [103, 602, 610, 623, 701, 720, 801, 809] và (
         'Material Type' = 'ROH' --> 'Procurement' = [F, X] |
         'Material Type' = 'HAWA' --> 'Procurement' = [F, X] |
         'Material Type' = 'HALB' --> 'Procurement' = F |
@@ -40,19 +40,22 @@
   - Tương tự như bước 2:
 
     - Nhập vào:
-      - 'Account Code' = 101 và 'Order Category' = 'Production Order'
-      - 'Account Code' = [602, 610, 623, 701, 720, 801, 809] và (
-        'Material Type' = 'HALB' --> 'Procurement' = [E, X]  
+      - 'Account Code' = 101 và 'Order Category' = 'Production Order' và
+        'Material Type' = 'HALB' và
+        'Procurement' = ['E', 'X']
+      - 'Account Code' = [103, 602, 610, 623, 701, 720, 801, 809] và (
+        'Material Type' = 'HALB' và 'Procurement' = [E, X]  
         )
     - Xuất ra:
-      - 'Account Code' = 102 và 'Order Category' = 'Production Order'
+      - 'Account Code' = 102 và 'Order Category' = 'Production Order' và
+        'Material Type' = 'HALB' và 'Procuremnt' = ['E', 'X']
       - 'Account Code' = [201, 261, 555, 601, 609, 702, 712, 721, 803] và (
-        'Material Type' = 'HALB' --> 'Procurement' = [E, X]
+        'Material Type' = 'HALB' và 'Procurement' = [E, X]
         )
     - Thuyên chuyển:
 
       - 'Account Code' = [300 -> 401] và (
-        'Material Type' = 'HALB' --> 'Procurement' = [E, X]  
+        'Material Type' = 'HALB' và 'Procurement' = ['E', 'X']  
         )
 
       - Với ('Account Code' = 261 và 'Material Type' = 'FERT') các kho bắt đầu bằng RW đổi thành Null (Không xài nữa)
@@ -60,13 +63,20 @@
 
 - Bước 4:
   - Nhập vào:
-    - 'Account Code' = 101 và 'Order Category' = 'Production order'
-    - 'Account Code' = [602, 610, 623, 701, 720, 801, 809] và (
+    - 'Account Code' = 101 và
+      'Order Category' = 'Production order' và
+      'Material Type' = 'FERT' và
+      'Procurement' = ['E', 'X']
+    - 'Account Code' = [103, 602, 610, 623, 701, 720, 801, 809] và (
       'Material Type' = 'FERT' --> 'Procurement' = [E, X]  
        )
-  - Xuất ra: - 'Account Code' = 102 và 'Order Category' = 'Production order' - 'Account Code' = [201, 261, 555, 601, 609, 702, 712, 721, 803] và (
-    'Material Type' = 'FERT' --> 'Procurement' = [E, X]  
-     )
+  - Xuất ra:
+    - 'Account Code' = 102 và
+      'Order Category' = 'Production order' và
+      'Material Type' = 'FERT' và
+      'Procurement' = ['E', 'X']
+    - 'Account Code' = [201, 261, 555, 601, 609, 702, 712, 721, 803] và
+      'Material Type' = 'FERT' --> 'Procurement' = [E, X]
   - Thuyên chuyển:
     - 'Account Code' = [300 -> 401] và (
       'Material Type' = 'FERT' --> 'Procurement' = [E, X]  

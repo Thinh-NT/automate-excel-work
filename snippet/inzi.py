@@ -1,12 +1,13 @@
 import pandas as pd
+import numpy as np
 import warnings
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 item_master = pd.read_excel(
-    r"data/item_master.xlsx", index_col=False, header=1)
+    r"data/inzi/Item_Master.xls", index_col=False, header=1)
 material_history = pd.read_excel(
-    'data/Material Movement History.xlsx', index_col=False, header=1)
+    'data/inzi/Materia_Movement_History.xls', index_col=False, header=1)
 
 temp_item_master = item_master[['Material', 'Material Type', 'Procurement']]
 
@@ -56,16 +57,19 @@ columns_name = {
 '''
 Conditions to insert into RAW, WIM, FG
 '''
-nhap_vao = [None] * 7
+
+''' SCM RAW '''
+nhap_vao = [None] * 9
 nhap_vao[0] = ((step_one['Account code'] == 101) & (
     step_one['Order Category'] == 'Purchase Order'))
-nhap_vao[1] = (step_one['Account code'] == 602)
-nhap_vao[1] = (step_one['Account code'] == 610)
-nhap_vao[2] = (step_one['Account code'] == 623)
-nhap_vao[3] = (step_one['Account code'] == 701)
-nhap_vao[4] = (step_one['Account code'] == 720)
-nhap_vao[5] = (step_one['Account code'] == 801)
-nhap_vao[6] = (step_one['Account code'] == 809)
+nhap_vao[1] = (step_one['Account code'] == 103)
+nhap_vao[2] = (step_one['Account code'] == 602)
+nhap_vao[3] = (step_one['Account code'] == 610)
+nhap_vao[4] = (step_one['Account code'] == 623)
+nhap_vao[5] = (step_one['Account code'] == 701)
+nhap_vao[6] = (step_one['Account code'] == 720)
+nhap_vao[7] = (step_one['Account code'] == 801)
+nhap_vao[8] = (step_one['Account code'] == 809)
 
 xuat_ra = [None] * 10
 xuat_ra[0] = ((step_one['Account code'] == 102) & (
@@ -116,7 +120,9 @@ condition_to_delete = ~(step_two['Account code'].isin([101, 102])) & (
 step_two.drop(step_two[condition_to_delete].index, inplace=True)
 
 SCM_RAW = step_two  # Get SCM_RAW
+'''------------------------------'''
 
+''' SCM WIP '''
 nhap_vao = [None] * 2
 nhap_vao[0] = (
     (step_one['Account code'] == 101) &
@@ -126,7 +132,7 @@ nhap_vao[0] = (
 )
 
 nhap_vao[1] = (
-    (step_one['Account code'].isin([602, 610, 623, 701, 720, 801, 809])) &
+    (step_one['Account code'].isin([103, 602, 610, 623, 701, 720, 801, 809])) &
     (step_one['Material Type'] == 'HALB') &
     (step_one['Procurement'].isin(['E', 'X']))
 )
@@ -167,6 +173,7 @@ condition_to_data(xuat_ra)
 condition_to_data(thuyen_chuyen)
 
 SCM_WIP = pd.concat(nhap_vao + xuat_ra + thuyen_chuyen)
+'''--------------------------------'''
 
 # SCM_WIP.loc[(
 #     (SCM_WIP['Account code'] == 261) &
@@ -174,6 +181,7 @@ SCM_WIP = pd.concat(nhap_vao + xuat_ra + thuyen_chuyen)
 #     (SCM_WIP['Location'].str.startswith('RW'))
 # ), 'Location'] = None
 
+''' SCM FG '''
 nhap_vao = [None] * 2
 nhap_vao[0] = (
     (step_one['Account code'] == 101) &
@@ -183,7 +191,7 @@ nhap_vao[0] = (
 )
 
 nhap_vao[1] = (
-    (step_one['Account code'].isin([602, 623, 701, 720, 801, 809])) &
+    (step_one['Account code'].isin([103, 602, 623, 701, 720, 801, 809])) &
     (step_one['Material Type'] == 'FERT') &
     (step_one['Procurement'].isin(['E', 'X']))
 )
@@ -197,7 +205,7 @@ xuat_ra[0] = (
 )
 
 xuat_ra[1] = (
-    (step_one['Account code'].isin([201, 601, 609, 702, 712, 721, 803])) &
+    (step_one['Account code'].isin([201, 261, 555, 601, 609, 702, 712, 721, 803])) &
     (step_one['Material Type'] == 'FERT') &
     (step_one['Procurement'].isin(['E', 'X']))
 )
@@ -230,8 +238,8 @@ def get_result(df):
     result.reset_index(inplace=True)
     del result['Unnamed: 0']
     aggregation_functions = {}
-    columns_order = [101, 102, 321, 343, 401,
-                     720, 201, 261, 344, 555, 601, 609, 721]
+    columns_order = [101, 102, 103, 321, 343, 344, 401, 701,
+                     720, 801, 809, 201, 261, 555, 601, 609, 702, 712, 721, 803]
     for column in result.columns:
         if isinstance(column, int):
             aggregation_functions[column] = 'sum'
@@ -243,7 +251,15 @@ def get_result(df):
 
     result = result.groupby(result['Material']).aggregate(
         aggregation_functions)
-    result = result[final_col]
+
+    for column in columns_order:
+        if column not in result.columns:
+            result[column] = np.nan
+    result.fillna(0, inplace=True)
+    result = result[columns_order]
+    result['IN'] = result[[101, 720, 801, 809]].sum(axis=1)
+    result['OUT'] = result[[102, 201, 261,
+                            555, 601, 609, 721, 803]].sum(axis=1)
     result.reset_index(inplace=True)
     result.index.name = None
     return result
@@ -255,7 +271,28 @@ FG_REPORT = get_result(SCM_FG)
 
 with pd.ExcelWriter('output/final_result.xlsx') as writer:
     RAW_REPORT.to_excel(writer, sheet_name='REPORT_RAW')
-    WIP_REPORT.to_excel(writer, sheet_name='REPORT_FG')
-    FG_REPORT.to_excel(writer, sheet_name='REPORT_WIP')
+    WIP_REPORT.to_excel(writer, sheet_name='REPORT_WIP')
+    FG_REPORT.to_excel(writer, sheet_name='REPORT_FG')
+
+    for sheet in [[RAW_REPORT, 'REPORT_RAW'], [WIP_REPORT, 'REPORT_WIP'], [FG_REPORT, 'REPORT_FG']]:
+        workbook = writer.book
+        worksheet = writer.sheets[sheet[1]]
+
+        # Add a format. Light red fill with dark red text.
+        format1 = workbook.add_format({'bg_color': '#FFC7CE',
+                                       'font_color': '#9C0006'})
+
+        # Set the conditional format range.
+        start_row = 1
+        start_col = 1
+        end_row = len(sheet[0])
+        end_cold = 23
+
+        # Apply a conditional format to the cell range.
+        worksheet.conditional_format(start_row, start_col, end_row, end_cold,
+                                     {'type':     'cell',
+                                      'criteria': '<',
+                                      'value':    0,
+                                      'format':   format1})
 
 print('DONE')

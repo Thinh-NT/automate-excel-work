@@ -16,7 +16,7 @@ take_out_free_url, take_out_free_header = 'data/posco/take_out_free.xls', 6
 return__url, return_header = 'data/posco/return.xlsx', 6
 # warehouse_url, warehouse_header = 'data/posco/iob.xlsx', 9
 transfer_url, transfer_header = 'data/posco/transfer.xlsx', 6
-last_year_url, last_year_header = 'data/posco/last_year.xlsx', 11
+last_year_url, last_year_header = 'data/posco/e31_lastyear.xlsx', 11
 
 xnk = pd.read_excel(xnk_url, header=xnk_header)
 take_out = pd.read_excel(take_out_url, header=take_out_header)
@@ -30,16 +30,24 @@ last_year = pd.read_excel(
 )
 
 
-''' Take E21, B13, A42 from xnk file '''
+''' Take E31, B13, A42 from xnk file '''
 
-e21 = xnk.loc[xnk['Mã loại hình'] == 'E21', [
+e31 = xnk.loc[xnk['Mã loại hình'] == 'E31', [
     'Mã NPL/SP', 'Ngày ĐK', 'Đơn vị tính', 'Tổng số lượng']]
 b13 = xnk.loc[xnk['Mã loại hình'] == 'B13', [
     'Mã NPL/SP', 'Ngày ĐK', 'Đơn vị tính', 'Tổng số lượng']]
-a42 = xnk.loc[xnk['Mã loại hình'] == 'A42', [
-    'Mã NPL/SP', 'Ngày ĐK', 'Đơn vị tính', 'Tổng số lượng']]
+# a42 = xnk.loc[xnk['Mã loại hình'] == 'A42', [
+#     'Mã NPL/SP', 'Ngày ĐK', 'Đơn vị tính', 'Tổng số lượng']]
+a42 = pd.read_excel(
+    'data/posco/a42.xls', header=9
+)
+a42 = a42.loc[a42['Ngày ĐK'] == '2020-12-31']
+# a42['Mã NPL/SP'] = [x[1] for x in a42['Tên hàng'].str.split('-')]
 
-for df in [e21, b13, a42]:
+a42 = a42[['Mã NPL/SP', 'Ngày ĐK', 'Đơn vị tính', 'Tổng số lượng']]
+
+
+for df in [e31, b13, a42]:
     df.rename(columns={
         'Mã NPL/SP': 'Items',
         'Ngày ĐK': 'Date',
@@ -121,7 +129,7 @@ transfer.rename(columns={
 ''' GENERATE RESULT '''
 
 # Prepare base items to fill data
-base_report = e21.drop_duplicates(subset=['Items'])
+base_report = e31.drop_duplicates(subset=['Items'])
 base_report = base_report[['Items', 'Unit']]
 base_report = pd.merge(
     base_report, output_for_production[['Items', 'Item Name']].drop_duplicates(subset=['Items']).rename(
@@ -137,11 +145,11 @@ last_year.rename(columns={
     ' - Ngày: 19/02/2020 - Ngày hết hạn: 31/12/2020': 'Unit',
     'Unnamed: 10': 'Ecus stock'
 }, inplace=True)
-e21_last_year = last_year[['Items', 'Item Name', 'Unit']]
+e31_last_year = last_year[['Items', 'Item Name', 'Unit']]
 
 base_report = base_report[['Items', 'Item Name', 'Unit']]
 base_report = pd.merge(
-    base_report, e21_last_year, how='outer',
+    base_report, e31_last_year, how='outer',
     left_on=['Items'],
     right_on=['Items']
 )
@@ -166,7 +174,7 @@ last_year = last_year[['Items', 'Ecus stock']]
 
 
 # List of dataframes for 12 month 1 --> 12
-E21_DF = [None] * 13
+E31_DF = [None] * 13
 B13_DF = [None] * 13
 A42_DF = [None] * 13
 OUTPUT_DF = [None] * 13
@@ -178,17 +186,21 @@ BALANCED_REPORT = [None] * 13
 
 for month in range(1, 13):
 
-    E21_DF[month] = e21.loc[e21['Date'].dt.month == month]
+    E31_DF[month] = e31.loc[e31['Date'].dt.month == month]
     B13_DF[month] = b13.loc[b13['Date'].dt.month == month]
-    A42_DF[month] = a42.loc[a42['Date'].dt.month == month]
+    if month == 1:
+        A42_DF[month] = a42
+    else:
+        A42_DF[month] = a42.loc[((b13['Date'].dt.year == 2021) & (
+            a42['Date'].dt.month == month))]
     OUTPUT_DF[month] = output_for_production.loc[output_for_production['Date'].dt.month == month]
     RETURN_DF[month] = return_df.loc[return_df['Date'].dt.month == month]
     TRANSFER_DF[month] = transfer.loc[transfer['Date'].dt.month == month]
 
     # Prepare for merge dataframe latter.
-    E21_DF[month] = E21_DF[month].groupby(
+    E31_DF[month] = E31_DF[month].groupby(
         ['Items'], as_index=False)[['Qty']].sum()
-    E21_DF[month].rename(columns={
+    E31_DF[month].rename(columns={
         'Qty': 'Import',
     }, inplace=True)
 
@@ -247,7 +259,7 @@ for month in range(1, 13):
     )
 
     BALANCED_REPORT[month] = pd.merge(
-        BALANCED_REPORT[month], E21_DF[month], how='left',
+        BALANCED_REPORT[month], E31_DF[month], how='left',
         left_on=['Items'],
         right_on=['Items']
     )
