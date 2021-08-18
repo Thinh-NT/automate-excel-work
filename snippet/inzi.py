@@ -2,13 +2,22 @@ import pandas as pd
 import numpy as np
 import warnings
 
+pd.options.mode.chained_assignment = None
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-item_master = pd.read_excel(
-    r"data/inzi/Item_Master.xls", index_col=False, header=1)
-material_history = pd.read_excel(
-    'data/inzi/Materia_Movement_History.xls', index_col=False, header=1)
+item_master_excel_file = '../data/inzi/Item Master_08_11_2021 0819.xls'
+material_history_excel_file = '../data/inzi/9-15 August.xlsb'
+out_put_file = '../output/9-15.xlsx'
 
+item_master = pd.read_excel(
+    item_master_excel_file, index_col=False, header=1
+)
+material_history = pd.read_excel(
+    material_history_excel_file, index_col=False, header=1
+)
+
+# Item master excel file must have 3 columns 'Material', 'Material Type', 'Procurement'
 temp_item_master = item_master[['Material', 'Material Type', 'Procurement']]
 
 '''
@@ -223,26 +232,28 @@ condition_to_data(thuyen_chuyen)
 
 SCM_FG = pd.concat(nhap_vao + xuat_ra + thuyen_chuyen)
 
-with pd.ExcelWriter('output/before_report.xlsx') as writer:
-    SCM_RAW.to_excel(writer, sheet_name='RAW')
-    SCM_FG.to_excel(writer, sheet_name='FG')
-    SCM_WIP.to_excel(writer, sheet_name='WIP')
+# with pd.ExcelWriter('output/before_report.xlsx') as writer:
+#     SCM_RAW.to_excel(writer, sheet_name='RAW')
+#     SCM_FG.to_excel(writer, sheet_name='FG')
+#     SCM_WIP.to_excel(writer, sheet_name='WIP')
 
 
 def get_result(df):
     '''
     Convert to final report, columns base on Account Code
     '''
-    result = df.pivot(index=["Unnamed: 0", "Material"],
-                      columns="Account code", values="Quantity")
+    result = df.pivot_table(index=["Unnamed: 0", "Material"],
+                            columns="Account code", values="Quantity", aggfunc='sum')
     result.reset_index(inplace=True)
     del result['Unnamed: 0']
     aggregation_functions = {}
-    columns_order = [101, 102, 103, 321, 343, 344, 401, 701,
+    columns_order = [101, 102, 103, 321, 323, 327, 343, 344, 401, 602, 701,
                      720, 801, 809, 201, 261, 555, 601, 609, 702, 712, 721, 803]
     for column in result.columns:
         if isinstance(column, int):
             aggregation_functions[column] = 'sum'
+            if column in [321, 323, 327, 343, 344, 401]:
+                aggregation_functions[column] = 'first'
 
     final_col = []
     for col in columns_order:
@@ -257,7 +268,7 @@ def get_result(df):
             result[column] = np.nan
     result.fillna(0, inplace=True)
     result = result[columns_order]
-    result['IN'] = result[[101, 720, 801, 809]].sum(axis=1)
+    result['IN'] = result[[101, 602, 720, 801, 809]].sum(axis=1)
     result['OUT'] = result[[102, 201, 261,
                             555, 601, 609, 721, 803]].sum(axis=1)
     result.reset_index(inplace=True)
@@ -269,7 +280,7 @@ RAW_REPORT = get_result(SCM_RAW)
 WIP_REPORT = get_result(SCM_WIP)
 FG_REPORT = get_result(SCM_FG)
 
-with pd.ExcelWriter('output/final_result.xlsx') as writer:
+with pd.ExcelWriter(out_put_file) as writer:
     RAW_REPORT.to_excel(writer, sheet_name='REPORT_RAW')
     WIP_REPORT.to_excel(writer, sheet_name='REPORT_WIP')
     FG_REPORT.to_excel(writer, sheet_name='REPORT_FG')
