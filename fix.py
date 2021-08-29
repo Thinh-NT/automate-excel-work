@@ -6,9 +6,9 @@ pd.options.mode.chained_assignment = None
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-item_master_excel_file = '../data/inzi/Item Master_08_18_2021 0317.xls'
-material_history_excel_file = '../data/inzi/Material Movement History_08_19_2021 1026.xls'
-out_put_file = '../output/9-15.xlsx'
+item_master_excel_file = 'data/inzi/Item Master_08_18_2021 0317.xls'
+material_history_excel_file = 'data/inzi/Material Movement History_08_19_2021 1026.xls'
+out_put_file = 'output/18 aug.xlsx'
 
 item_master = pd.read_excel(
     item_master_excel_file, index_col=False, header=1
@@ -242,13 +242,13 @@ def get_result(df):
     '''
     Convert to final report, columns base on Account Code
     '''
-    result = df.pivot_table(index=["Material"],
-                            columns="Account code", values="Quantity")
+    result = df.pivot_table(index=["Unnamed: 0", "Material"],
+                            columns="Account code", values="Quantity", aggfunc='sum')
     result.reset_index(inplace=True)
-    # del result['Unnamed: 0']
+    del result['Unnamed: 0']
     aggregation_functions = {}
-    columns_order = [101, 102, 103, 321, 323, 327, 343, 344, 401, 602, 701,
-                     720, 801, 809, 201, 261, 555, 601, 609, 702, 712, 721, 803]
+    columns_order = [101, 102, 321, 343, 344, 401, 623,
+                     720, 201, 261, 601, 609, 721]
     for column in result.columns:
         if isinstance(column, int):
             aggregation_functions[column] = 'sum'
@@ -268,26 +268,22 @@ def get_result(df):
             result[column] = np.nan
     result.fillna(0, inplace=True)
     result = result[columns_order]
-    result['IN'] = result[[101, 602, 720, 801, 809]].sum(axis=1)
+    result['IN'] = result[[101, 103, 602, 623, 701, 720, 801, 809]].sum(axis=1)
     result['OUT'] = result[[102, 201, 261,
-                            555, 601, 609, 721, 803]].sum(axis=1)
+                            555, 601, 609, 712, 721, 803]].sum(axis=1)
     result.reset_index(inplace=True)
     result.index.name = None
-
-    result = result.loc[:, (result != 0).any(axis=0)]
     return result
 
 
 RAW_REPORT = get_result(SCM_RAW)
 WIP_REPORT = get_result(SCM_WIP)
 FG_REPORT = get_result(SCM_FG)
-SUMMARY = get_result(step_one)
 
 with pd.ExcelWriter(out_put_file) as writer:
     RAW_REPORT.to_excel(writer, sheet_name='REPORT_RAW')
     WIP_REPORT.to_excel(writer, sheet_name='REPORT_WIP')
     FG_REPORT.to_excel(writer, sheet_name='REPORT_FG')
-    SUMMARY.to_excel(writer, sheet_name='SUMMARY')
 
     for sheet in [[RAW_REPORT, 'REPORT_RAW'], [WIP_REPORT, 'REPORT_WIP'], [FG_REPORT, 'REPORT_FG']]:
         workbook = writer.book
