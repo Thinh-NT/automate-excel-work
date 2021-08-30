@@ -24,7 +24,7 @@ temp_item_master = item_master[['Material', 'Material Type', 'Procurement']]
 PREPARE FOR STEP ONE
 '''
 step_one = pd.merge(material_history, temp_item_master,
-                    on="Material", how="left")
+                    on='Material', how='left')
 
 step_one.rename(columns={
     'Reference': 'Order Category',
@@ -190,6 +190,7 @@ SCM_WIP = pd.concat(nhap_vao + xuat_ra + thuyen_chuyen)
 #     (SCM_WIP['Location'].str.startswith('RW'))
 # ), 'Location'] = None
 
+
 ''' SCM FG '''
 nhap_vao = [None] * 2
 nhap_vao[0] = (
@@ -242,39 +243,58 @@ def get_result(df):
     '''
     Convert to final report, columns base on Account Code
     '''
-    result = df.pivot_table(index=["Material"],
-                            columns="Account code", values="Quantity")
-    result.reset_index(inplace=True)
-    # del result['Unnamed: 0']
+
     aggregation_functions = {}
+    final_col = []
+    in_columns = []
+    out_columns = []
     columns_order = [101, 102, 103, 321, 323, 327, 343, 344, 401, 602, 701,
                      720, 801, 809, 201, 261, 555, 601, 609, 702, 712, 721, 803]
-    for column in result.columns:
-        if isinstance(column, int):
+    columns_inin = [101, 103, 602, 621, 623, 701, 720, 801, 809]
+    columns_inout = [102, 201, 261, 555, 601, 609, 702, 712, 721, 803]
+
+    # Methods use when group by 'Material'
+    for column in pd.unique(df['Account code']):
+        if isinstance(column, np.int64):
             aggregation_functions[column] = 'sum'
             if column in [321, 323, 327, 343, 344, 401]:
                 aggregation_functions[column] = 'first'
 
-    final_col = []
-    for col in columns_order:
-        if col in result.columns:
-            final_col.append(col)
+    result = df.pivot_table(index=['Unnamed: 0', 'Material'],
+                            columns='Account code', values='Quantity', aggfunc=np.sum, fill_value=0)
+
+    result.reset_index(inplace=True)
+
+    del result['Unnamed: 0']
 
     result = result.groupby(result['Material']).aggregate(
         aggregation_functions)
 
-    for column in columns_order:
-        if column not in result.columns:
-            result[column] = np.nan
+    for col in columns_order:
+        if col in result.columns:
+            final_col.append(col)
+
+    result = result[final_col]
+
+    for column in result.columns:
+        if column in columns_inin:
+            in_columns.append(column)
+        if column in columns_inout:
+            out_columns.append(column)
+
+    result['IN'] = result[in_columns].sum(axis=1)
+    result['OUT'] = result[out_columns].sum(axis=1)
+
     result.fillna(0, inplace=True)
-    result = result[columns_order]
-    result['IN'] = result[[101, 602, 720, 801, 809]].sum(axis=1)
-    result['OUT'] = result[[102, 201, 261,
-                            555, 601, 609, 721, 803]].sum(axis=1)
     result.reset_index(inplace=True)
     result.index.name = None
 
-    result = result.loc[:, (result != 0).any(axis=0)]
+    # Remove columns with no values
+    # result = result.loc[:, (result != 0).any(axis=0)]
+
+    for column in result:
+        if isinstance(column, int) or column in ['IN', 'OUT']:
+            result[column] = result[column].abs()
     return result
 
 
