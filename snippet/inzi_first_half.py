@@ -56,6 +56,22 @@ cols = step_one.columns.tolist()
 cols = cols[:7] + [cols[-1]] + cols[7: -1]
 step_one = step_one[cols]
 
+steady = step_one.pivot_table(index=['Unnamed: 0', 'Material'],
+                              columns='Account code', values=['Quantity'], aggfunc=np.sum, fill_value=0)
+
+
+steady.reset_index(inplace=True)
+del steady['Unnamed: 0']
+steady = steady.groupby(steady['Material']).aggregate(
+    'sum')
+
+
+steady['IN'] = steady.where(steady > 0).sum(1)
+steady['OUT'] = steady.where(steady < 0).sum(1)
+
+SUMMARY = steady.iloc[:, [-2, -1]]
+
+
 columns_name = {
     'H': 'Account code',
     'p': 'Order Category',
@@ -239,26 +255,36 @@ SCM_FG = pd.concat(nhap_vao + xuat_ra + thuyen_chuyen)
 #     SCM_WIP.to_excel(writer, sheet_name='WIP')
 
 
+def take_sum_of_positive_number(x):
+    positive_nums = []
+    for val in x:
+        if val <= 0:
+            continue
+        else:
+            positive_nums.append(val)
+    return np.sum(positive_nums)
+
+
 def get_result(df):
     '''
     Convert to final report, columns base on Account Code
     '''
 
-    aggregation_functions = {}
-    final_col = []
-    in_columns = []
-    out_columns = []
-    columns_order = [101, 102, 103, 321, 323, 327, 343, 344, 401, 602, 701,
+    aggregation_functions = {}  # Methods use when group by 'Material'
+    final_col = []              # Columns will appear in result
+    in_columns = []             # Columns will be taken as sum in IN column
+    out_columns = []            # Columns will be taken as sum in OUT column
+
+    columns_order = [101, 102, 'PURCHASE', 103, 321, 323, 327, 343, 344, 401, 602, 701,
                      720, 801, 809, 201, 261, 555, 601, 609, 702, 712, 721, 803]
     columns_inin = [101, 103, 602, 621, 623, 701, 720, 801, 809]
     columns_inout = [102, 201, 261, 555, 601, 609, 702, 712, 721, 803]
 
-    # Methods use when group by 'Material'
     for column in pd.unique(df['Account code']):
         if isinstance(column, np.int64):
             aggregation_functions[column] = 'sum'
             if column in [321, 323, 327, 343, 344, 401]:
-                aggregation_functions[column] = 'first'
+                aggregation_functions[column] = take_sum_of_positive_number
 
     result = df.pivot_table(index=['Unnamed: 0', 'Material'],
                             columns='Account code', values='Quantity', aggfunc=np.sum, fill_value=0)
@@ -270,6 +296,15 @@ def get_result(df):
     result = result.groupby(result['Material']).aggregate(
         aggregation_functions)
 
+    for column in pd.unique(step_one['Account code']):
+        if column not in result.columns:
+            result[column] = 0
+
+    if 102 in result:
+        if not (result[102] == 0).all():
+            result['PURCHASE'] = result[101] - result[102]
+
+    # REARRANGE COLUMNS ORDER
     for col in columns_order:
         if col in result.columns:
             final_col.append(col)
@@ -301,7 +336,6 @@ def get_result(df):
 RAW_REPORT = get_result(SCM_RAW)
 WIP_REPORT = get_result(SCM_WIP)
 FG_REPORT = get_result(SCM_FG)
-SUMMARY = get_result(step_one)
 
 with pd.ExcelWriter(out_put_file) as writer:
     RAW_REPORT.to_excel(writer, sheet_name='REPORT_RAW')
