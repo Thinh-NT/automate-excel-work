@@ -1,5 +1,6 @@
 # import numpy as np
 # from functools import reduce
+from os import walk
 import warnings
 
 import pandas as pd
@@ -8,16 +9,13 @@ pd.options.mode.chained_assignment = None
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-
+folder = '../data/inzi/abc/'
 open_stock = '../data/inzi/stock.xlsb'
 goods_processing_file = '../data/inzi/goods processing.xlsx'
-files = [
-    '../data/inzi/02 SEP/01-09-2021_IN-OUT DAILY REPORT.xlsb',
-    '../data/inzi/03 SEP/02-09-2021_IN-OUT DAILY REPORT.xlsb',
-    '../data/inzi/04 SEP/03-09-2021_IN-OUT DAILY REPORT.xlsb',
-]
 out_put_file = '../output/concet.xlsx'
 
+filenames = next(walk(folder), (None, None, []))[2]
+files = [folder + x for x in filenames]
 
 stock = pd.read_excel(open_stock, header=2)
 goods_processing = pd.read_excel(
@@ -84,12 +82,21 @@ def get_concat(sheet):
     print(f'Concat {l} files together in {sheet}')
     # final_result.drop(final_result.columns[-1], axis=1, inplace=True)
     final_result.fillna(0, inplace=True)
+    for i, item in enumerate(final_result.columns):
+        if item in final_result.columns[:i]:
+            final_result.rename(columns={
+                item: f'{item}_new'
+            }, inplace=True)
     return final_result
 
 
 raw_concat = get_concat('REPORT-RAW')
 wip_concat = get_concat('REPORT-WIP')
 fg_concat = get_concat('REPORT-FG')
+
+# raw_concat = raw_concat.loc[:, ~raw_concat.columns.duplicated()]
+# wip_concat = wip_concat.loc[:, ~wip_concat.columns.duplicated()]
+# fg_concat = fg_concat.loc[:, ~fg_concat.columns.duplicated()]
 print('---------------------------------------------------------------------')
 
 

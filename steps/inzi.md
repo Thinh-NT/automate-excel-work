@@ -86,3 +86,7 @@
   - Tạo bảng mới với columns là các giá trị của 'Account Code', giá trị theo cột 'Quantity', giá trị của cùng 'Item Code' ('Material') thì được cộng dồn.
   - Cột 'IN' = Tổng các cột trong [101, 720, 801, 809]
   - Cột 'OUT' = Tổng các cột trong [102, 201, 261, 555, 601, 609, 721, 803] nếu có.
+
+# Lưu ý khi sử dụng Scripts:
+
+- File 'Following good processing' phải cùng format ở 3 cột đầu tiên ở các sheets (không cần bao gồm các sheets tổng hợp)

@@ -6,9 +6,9 @@ pd.options.mode.chained_assignment = None
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-item_master_excel_file = '../data/inzi/Item Master_08_18_2021 0317.xls'
-material_history_excel_file = '../data/inzi/Material Movement History_08_19_2021 1026.xls'
-out_put_file = '../output/9-15.xlsx'
+item_master_excel_file = '../data/inzi/Item Master_10_07_2021 0850.xls'
+material_history_excel_file = '../data/inzi/Material Movement History_10_09_2021 08 oct.xls'
+out_put_file = '../output/08 oct.xlsx'
 
 item_master = pd.read_excel(
     item_master_excel_file, index_col=False, header=1
@@ -25,6 +25,14 @@ PREPARE FOR STEP ONE
 '''
 step_one = pd.merge(material_history, temp_item_master,
                     on='Material', how='left')
+
+check_item_master = step_one['Material Type'].isnull()
+
+if check_item_master.sum() > 1:
+    print(f'Có {check_item_master.sum() - 1} mã không tìm thấy trong item_master')
+else:
+    pass
+
 
 step_one.rename(columns={
     'Reference': 'Order Category',
@@ -109,12 +117,8 @@ xuat_ra[7] = (step_one['Account code'] == 712)
 xuat_ra[8] = (step_one['Account code'] == 721)
 xuat_ra[9] = (step_one['Account code'] == 803)
 
-thuyen_chuyen = [None] * 2
+thuyen_chuyen = [None]
 thuyen_chuyen[0] = (step_one['Account code'].between(300, 402))
-thuyen_chuyen[1] = (
-    (step_one['Account code'] == 555) & (step_one['Material Type'] == 'ROH') &
-    (step_one['Procurement'].isin(['F', 'X']))
-)
 
 
 def condition_to_data(arr):
@@ -238,7 +242,7 @@ xuat_ra[1] = (
 
 thuyen_chuyen = [None]
 thuyen_chuyen[0] = (
-    (step_one['Account code'].between(300, 402) | step_one['Account code'].isin([555])) &
+    (step_one['Account code'].between(300, 402)) &
     (step_one['Material Type'] == 'FERT') &
     (step_one['Procurement'].isin(['E', 'X']))
 )
@@ -275,15 +279,15 @@ def get_result(df):
     in_columns = []             # Columns will be taken as sum in IN column
     out_columns = []            # Columns will be taken as sum in OUT column
 
-    columns_order = [101, 102, 'PURCHASE', 103, 321, 323, 327, 343, 344, 401, 602, 701,
+    columns_order = [101, 102, 'PURCHASE', 103, 321, 323, 327, 342, 343, 344, 346, 401, 602, 610, 623, 701,
                      720, 801, 809, 201, 261, 555, 601, 609, 702, 712, 721, 803]
-    columns_inin = [101, 103, 602, 621, 623, 701, 720, 801, 809]
+    columns_inin = [101, 103, 602, 610, 621, 623, 701, 720, 801, 809]
     columns_inout = [102, 201, 261, 555, 601, 609, 702, 712, 721, 803]
 
     for column in pd.unique(df['Account code']):
         if isinstance(column, np.int64):
             aggregation_functions[column] = 'sum'
-            if column in [321, 323, 327, 343, 344, 401]:
+            if column in [321, 323, 327, 342, 343, 344, 346, 401]:
                 aggregation_functions[column] = take_sum_of_positive_number
 
     result = df.pivot_table(index=['Unnamed: 0', 'Material'],
