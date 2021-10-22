@@ -1,9 +1,12 @@
 from functools import reduce
 import pandas as pd
+import datetime
 
 pd.set_option('display.max_columns', 45)
 pd.set_option('display.max_rows', 100)
 
+
+begin = datetime.datetime.now()
 
 excel = pd.read_excel('data/5402.xlsx')
 
@@ -163,5 +166,14 @@ for index, row in excel.iterrows():
             excel.at[index + 1, 'TEMP'] = excel.at[index, 'TEMP']
 
 
+def final_col(row):
+    if set(row['TEMP'].split()) <= set(row['TEMP'].split()):
+        return row['TEMP']
+
+
+excel.apply(lambda row: final_col(row), axis=1)
+
 excel.to_excel('output/testing.xlsx')
-print('DONE SIR')
+end = datetime.datetime.now()
+
+print(f'{end - begin}s to run')

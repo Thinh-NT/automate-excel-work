@@ -6,9 +6,9 @@ pd.options.mode.chained_assignment = None
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-item_master_excel_file = '../data/inzi/Item Master_10_07_2021 0850.xls'
-material_history_excel_file = '../data/inzi/Material Movement History_10_09_2021 08 oct.xls'
-out_put_file = '../output/08 oct.xlsx'
+item_master_excel_file = '../../data/inzi/Item Master_10_07_2021 0850.xls'
+material_history_excel_file = '../../data/inzi/Material Movement History_10_09_2021 08 oct.xls'
+out_put_file = '../../output/08 oct.xlsx'
 
 item_master = pd.read_excel(
     item_master_excel_file, index_col=False, header=1
@@ -27,6 +27,8 @@ step_one = pd.merge(material_history, temp_item_master,
                     on='Material', how='left')
 
 check_item_master = step_one['Material Type'].isnull()
+
+step_one.to_excel('../../output/check_item.xlsx')
 
 if check_item_master.sum() > 1:
     print(f'Có {check_item_master.sum() - 1} mã không tìm thấy trong item_master')
