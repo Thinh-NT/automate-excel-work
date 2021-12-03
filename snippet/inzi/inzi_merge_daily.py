@@ -6,12 +6,12 @@ pd.options.mode.chained_assignment = None
 pd.set_option('display.max_columns', 80)
 pd.set_option('display.max_rows', 55)
 
-duplicated_item_file = '../output/duplicated_item.txt'
-goods_processing_file = '../data/inzi/(JUNE)Following goods processing.xlsx'
-previous_file = '../data/inzi/03-10-2021_IN-OUT-STOCK_DAILY REPORT.xlsb'
-today_file = '../data/inzi/03-10-2021_IN-OUT DAILY REPORT.xlsb'
+duplicated_item_file = '../../output/duplicated_item.txt'
+goods_processing_file = '../../data/inzi/(JUNE)Following goods processing.xlsx'
+previous_file = '../../data/inzi/02-11-2021_IN-OUT-STOCK_DAILY REPORT.xlsb'
+today_file = '../../data/inzi/02-11-2021_IN-OUT DAILY REPORT.xlsb'
 open_stock = previous_file
-out_put_file = '../output/dailyconcat.xlsx'
+out_put_file = '../../output/dailyconcat.xlsx'
 
 f = open(duplicated_item_file, 'w')
 
@@ -61,7 +61,7 @@ def get_result(sheetname):
     result.drop_duplicates(inplace=True, keep='first')
 
     duplicate = result[result.duplicated(subset=['Material'])]
-    duplicate.to_excel('../output/duplicated.xlsx')
+    duplicate.to_excel('../../output/duplicated.xlsx')
 
     result = pd.merge(result, stock, how="left", on=['Material'], sort=False,
                       indicator=False, validate=None)
@@ -79,7 +79,7 @@ raw_concat = get_result('REPORT-RAW')
 wip_concat = get_result('REPORT-WIP')
 fg_concat = get_result('REPORT-FG')
 
-raw_concat.to_excel('../output/fixing')
+raw_concat.to_excel('../../output/fixing')
 
 print('Done')
 
