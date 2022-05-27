@@ -1,0 +1,14 @@
+autopep8
+bs4
+ipykernel
+jinja2
+openpyxl
+pandas
+pip-chill
+pymupdf
+pypdf2
+pyxlsb
+scrapy
+tika
+xlrd
+xlsxwriter
